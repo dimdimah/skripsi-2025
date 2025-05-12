@@ -135,7 +135,7 @@ export function StudentForm() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto border-none">
       <CardHeader>
         <CardTitle>Tambah Data Siswa</CardTitle>
         <CardDescription>

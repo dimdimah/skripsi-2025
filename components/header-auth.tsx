@@ -1,26 +1,43 @@
-import { signOutAction } from "@/app/actions";
+import { signOutAction, getUserProfile } from "@/app/actions";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import Link from "next/link";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
 import { Button } from "./ui/button";
 import { createClient } from "@/utils/supabase/server";
 import Navbar from "./navbar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { LogOut, UserIcon } from "lucide-react";
 
 export default async function AuthButton() {
   const supabase = await createClient();
+  const profile = await getUserProfile();
+
+  if (!profile) return null;
 
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  // const { data: profile, error: profileError } = await supabase
+  //   .from("profiles")
+  //   .select("*")
+  //   .eq("id", user.id)
+  //   .single();
+
+  // if (profileError) {
+  //   throw new Error("Data user not found");
+  // }
 
   if (!hasEnvVars) {
     return (
@@ -34,16 +51,7 @@ export default async function AuthButton() {
               disabled
               className="opacity-75 cursor-none pointer-events-none"
             >
-              <Link href="/sign-in">Sign in</Link>
-            </Button>
-            <Button
-              asChild
-              size="sm"
-              variant={"default"}
-              disabled
-              className="opacity-75 cursor-none pointer-events-none"
-            >
-              <Link href="/sign-up">Sign up</Link>
+              <Link href="/sign-in">Join With us</Link>
             </Button>
           </div>
         </div>
@@ -56,42 +64,43 @@ export default async function AuthButton() {
         <Navbar />
       </div>
       <div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              Sign out
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative rounded-full">
+              <UserIcon size={25} className="h-8 w-8" />
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Are you sure?</DialogTitle>
-              <DialogDescription>
-                You want to sign out from your account?
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-4 flex justify-end gap-2">
-              <DialogClose asChild>
-                <Button variant="outline" size="sm">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <form action={signOutAction}>
-                <Button type="submit" variant="destructive" size="sm">
-                  Sign out
-                </Button>
-              </form>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">
+                  {profile.full_name}
+                </p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user.email}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/">
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={signOutAction}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   ) : (
     <div className="flex gap-2">
-      <Button asChild size="sm" variant={"outline"}>
-        <Link href="/sign-in">Sign in</Link>
-      </Button>
-      <Button asChild size="sm" variant={"default"}>
-        <Link href="/sign-up">Sign up</Link>
+      <Button asChild size="sm">
+        <Link href="/sign-in">Join Exams</Link>
       </Button>
     </div>
   );

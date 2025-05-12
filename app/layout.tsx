@@ -30,39 +30,53 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={geistSans.className} suppressHydrationWarning>
-      <body className="bg-background text-foreground">
+      <body className="antialiased min-h-svh flex flex-col">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <main className="min-h-screen flex flex-col items-center">
-            <div className="flex-1 w-full flex flex-col gap-20 items-center">
+          <main className="flex flex-col bg-background">
+            <div className="flex-1 w-full flex flex-col items-center">
               <nav className="w-full flex justify-center h-16">
-                <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
+                <div className="w-full max-w-6xl flex justify-between items-center p-3 px-5">
                   <div className="flex gap-5 items-center font-semibold">
                     <Link
                       href="/"
-                      className="flex items-center gap-1 font-semibold text-base text-stone-800"
+                      className="flex items-center gap-1 font-semibold text-lg text-stone-800"
                     >
-                      <BrainCog size={20} />
+                      <BrainCog size={24} />
                       Eva
                     </Link>
                   </div>
                   {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
                 </div>
               </nav>
-              <div className="flex flex-col gap-20 max-w-7xl p-5">
+              <div className="flex flex-col max-w-7xl min-h-screen">
                 {children}
               </div>
-
-              <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-                <p>
-                  Powered by <span className="font-semibold">dimdimah</span>
-                </p>
-                <ThemeSwitcher />
-              </footer>
+              <nav className="w-full flex justify-center h-20 border-t">
+                <div className="w-full max-w-6xl flex justify-between items-center p-3 px-5">
+                  <p className="text-xs text-muted-foreground">
+                    © 2025 Online Exam Platform. All rights reserved.
+                  </p>
+                  <nav className="sm:ml-auto flex gap-4 sm:gap-6">
+                    <Link
+                      href="#"
+                      className="text-xs hover:underline underline-offset-4"
+                    >
+                      Terms of Service
+                    </Link>
+                    <Link
+                      href="#"
+                      className="text-xs hover:underline underline-offset-4"
+                    >
+                      Privacy
+                    </Link>
+                  </nav>
+                </div>
+              </nav>
             </div>
           </main>
         </ThemeProvider>

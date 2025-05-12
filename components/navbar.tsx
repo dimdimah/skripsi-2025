@@ -9,11 +9,11 @@ export default function Navbar() {
 
   const navItems = [
     { name: "Dashboard", href: "/protected", icon: House },
-    { name: "Partisipan", href: "/product", icon: UserRound },
+    { name: "Partisipan", href: "/protected/admin/dashboard", icon: UserRound },
   ];
 
   return (
-    <nav className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 my-4">
+    <nav className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 my-4">
       <div className="flex items-center h-16 gap-10">
         <div className="hidden md:flex items-center space-x-6 text-sm">
           {navItems.map((item) => {
@@ -35,7 +35,6 @@ export default function Navbar() {
           })}
         </div>
       </div>
-      <div>{/* logout button */}</div>
     </nav>
   );
 }

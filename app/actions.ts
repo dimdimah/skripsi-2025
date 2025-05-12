@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
+  const fullName = formData.get("full_name")?.toString();
   const supabase = await createClient();
   const origin = (await headers()).get("origin");
 
@@ -39,7 +40,7 @@ export const signUpAction = async (formData: FormData) => {
     const { error: profileError } = await supabase.from("profiles").insert({
       id: userId,
       email: email,
-      full_name: "",
+      full_name: fullName ?? "",
       role: "admin",
       created_at: new Date().toISOString(),
     });
@@ -96,7 +97,7 @@ export const signInAction = async (formData: FormData) => {
     if (profileData && profileData.role) {
       switch (profileData.role) {
         case "admin":
-          return redirect("/protected/admin/dashboard");
+          return redirect("/protected");
         default:
           return redirect("/sign-in");
       }
@@ -104,7 +105,7 @@ export const signInAction = async (formData: FormData) => {
   }
 
   // Default redirect jika tidak ada kondisi khusus
-  return redirect("/protected/admin/dashboard");
+  return redirect("/protected");
 };
 
 // FORGOT PASSWORD ACTION
@@ -254,4 +255,22 @@ export async function checkUsernameAvailability(username: string) {
   }
 
   return { available: !data };
+}
+
+// Get user profile by auth
+export async function getUserProfile() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email, role")
+    .eq("id", user.id)
+    .single();
+
+  return profile;
 }
