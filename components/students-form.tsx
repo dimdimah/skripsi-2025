@@ -1,22 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { addStudent, checkUsernameAvailability } from "@/app/actions";
+import {
+  addStudent,
+  checkUsernameAvailability,
+  getKelasList,
+} from "@/app/actions";
+import { useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import { Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -24,8 +39,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   nama_lengkap: z.string().min(2, {
@@ -37,14 +50,20 @@ const formSchema = z.object({
   password: z.string().min(6, {
     message: "Password harus minimal 6 karakter.",
   }),
-  kelas: z.string().min(1, {
-    message: "Kelas tidak boleh kosong.",
+  kelas_id: z.string({
+    required_error: "Pilih kelas",
   }),
 });
 
-export function StudentForm() {
+type Kelas = {
+  kelas_id: string;
+  nama_kelas: string;
+};
+
+export default function StudentsForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [kelasList, setKelasList] = useState<Kelas[]>([]);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
     null
@@ -56,12 +75,29 @@ export function StudentForm() {
       nama_lengkap: "",
       username: "",
       password: "",
-      kelas: "",
     },
   });
 
-  // Watch username field
   const username = form.watch("username");
+
+  useEffect(() => {
+    async function fetchKelas() {
+      const { data, error } = await getKelasList();
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Gagal mengambil data kelas",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setKelasList(data || []);
+    }
+
+    fetchKelas();
+  }, []);
 
   useEffect(() => {
     const check = async () => {
@@ -94,48 +130,58 @@ export function StudentForm() {
 
     const delay = setTimeout(check, 500);
     return () => clearTimeout(delay);
-  }, [username]);
+  }, [username, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
 
-    const formData = new FormData();
-    formData.append("nama_lengkap", values.nama_lengkap);
-    formData.append("username", values.username);
-    formData.append("password", values.password);
-    formData.append("kelas", values.kelas);
+    try {
+      const formData = new FormData();
+      formData.append("nama_lengkap", values.nama_lengkap);
+      formData.append("username", values.username);
+      formData.append("password", values.password);
+      formData.append("kelas_id", values.kelas_id);
 
-    const result = await addStudent(formData);
+      const result = await addStudent(formData);
 
-    setIsSubmitting(false);
+      if (result.error) {
+        if (result.error.toLowerCase().includes("username")) {
+          form.setError("username", {
+            type: "manual",
+            message: result.error,
+          });
+        }
 
-    if (result.error) {
-      if (result.error.toLowerCase().includes("username")) {
-        form.setError("username", {
-          type: "manual",
-          message: result.error,
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
         });
+        setIsSubmitting(false);
+        return;
       }
 
       toast({
-        variant: "destructive",
-        title: "Gagal menyimpan",
-        description: result.error,
+        title: "Sukses",
+        description: "Data siswa berhasil ditambahkan.",
       });
-      return;
+
+      form.reset();
+
+      router.push("/protected/admin/dashboard");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Terjadi kesalahan saat menyimpan data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    toast({
-      title: "Sukses",
-      description: "Data siswa berhasil ditambahkan.",
-    });
-
-    form.reset();
-    router.push("/protected/admin/dashboard");
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto border-none">
+    <Card className="border-none">
       <CardHeader>
         <CardTitle>Tambah Data Siswa</CardTitle>
         <CardDescription>
@@ -145,7 +191,6 @@ export function StudentForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Nama Lengkap */}
             <FormField
               control={form.control}
               name="nama_lengkap"
@@ -153,14 +198,16 @@ export function StudentForm() {
                 <FormItem>
                   <FormLabel>Nama Lengkap</FormLabel>
                   <FormControl>
-                    <Input placeholder="Masukkan nama lengkap" {...field} />
+                    <Input
+                      placeholder="Masukkan nama lengkap siswa"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Username */}
             <FormField
               control={form.control}
               name="username"
@@ -199,7 +246,6 @@ export function StudentForm() {
               )}
             />
 
-            {/* Password */}
             <FormField
               control={form.control}
               name="password"
@@ -221,16 +267,29 @@ export function StudentForm() {
               )}
             />
 
-            {/* Kelas */}
             <FormField
               control={form.control}
-              name="kelas"
+              name="kelas_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Kelas</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Contoh: 10A, 11B, 12C" {...field} />
-                  </FormControl>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih kelas" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {kelasList.map((kelas) => (
+                        <SelectItem key={kelas.kelas_id} value={kelas.kelas_id}>
+                          {kelas.nama_kelas}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -256,6 +315,7 @@ export function StudentForm() {
             </Button>
           </form>
         </Form>
+        <Toaster />
       </CardContent>
     </Card>
   );

@@ -16,9 +16,22 @@ import { LogOut, UserIcon } from "lucide-react";
 
 export default async function AuthButton() {
   const supabase = await createClient();
-  const profile = await getUserProfile();
 
-  if (!profile) return null;
+  if (!hasEnvVars) {
+    return (
+      <div className="flex gap-4 items-center">
+        <Button
+          asChild
+          size="sm"
+          variant={"outline"}
+          disabled
+          className="opacity-75 cursor-none pointer-events-none"
+        >
+          <Link href="/sign-in">Join With us</Link>
+        </Button>
+      </div>
+    );
+  }
 
   const {
     data: { user },
@@ -26,39 +39,32 @@ export default async function AuthButton() {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("Unauthorized");
-  }
-
-  // const { data: profile, error: profileError } = await supabase
-  //   .from("profiles")
-  //   .select("*")
-  //   .eq("id", user.id)
-  //   .single();
-
-  // if (profileError) {
-  //   throw new Error("Data user not found");
-  // }
-
-  if (!hasEnvVars) {
     return (
-      <>
-        <div className="flex gap-4 items-center">
-          <div className="flex gap-2">
-            <Button
-              asChild
-              size="sm"
-              variant={"outline"}
-              disabled
-              className="opacity-75 cursor-none pointer-events-none"
-            >
-              <Link href="/sign-in">Join With us</Link>
-            </Button>
-          </div>
-        </div>
-      </>
+      <div className="flex gap-2">
+        <Button asChild size="sm">
+          <Link href="/sign-in">Join Exams</Link>
+        </Button>
+      </div>
     );
   }
-  return user ? (
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return (
+      <div className="flex gap-2">
+        <Button asChild size="sm">
+          <Link href="/sign-in">Join Exams</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
     <div className="flex items-center justify-between w-full">
       <div>
         <Navbar />
@@ -96,12 +102,6 @@ export default async function AuthButton() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </div>
-  ) : (
-    <div className="flex gap-2">
-      <Button asChild size="sm">
-        <Link href="/sign-in">Join Exams</Link>
-      </Button>
     </div>
   );
 }

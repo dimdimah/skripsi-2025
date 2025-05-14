@@ -1,11 +1,14 @@
 "use server";
 
-import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
+import { encodedRedirect } from "@/utils/utils";
 import { headers } from "next/headers";
-import * as bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
+import * as bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
+import { revalidatePath } from "next/cache";
 
+// AUTHENTICATION ACTIONS
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
@@ -57,7 +60,6 @@ export const signUpAction = async (formData: FormData) => {
   );
 };
 
-// SIGN IN ACTION
 export const signInAction = async (formData: FormData) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -108,7 +110,6 @@ export const signInAction = async (formData: FormData) => {
   return redirect("/protected");
 };
 
-// FORGOT PASSWORD ACTION
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const supabase = await createClient();
@@ -143,7 +144,6 @@ export const forgotPasswordAction = async (formData: FormData) => {
   );
 };
 
-// RESET PASSWORD ACTION
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();
 
@@ -181,81 +181,11 @@ export const resetPasswordAction = async (formData: FormData) => {
   encodedRedirect("success", "/protected/reset-password", "Password updated");
 };
 
-// SIGN OUT ACTION
 export const signOutAction = async () => {
   const supabase = await createClient();
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };
-
-// ADD STUDENT ACTION
-export async function addStudent(formData: FormData) {
-  const supabase = await createClient();
-
-  // Get current user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "You must be logged in to add a student" };
-  }
-
-  // Get form data
-  const nama_lengkap = formData.get("nama_lengkap") as string;
-  const username = formData.get("username") as string;
-  const password = formData.get("password") as string;
-  const kelas = formData.get("kelas") as string;
-
-  // Validate form data
-  if (!nama_lengkap || !username || !password || !kelas) {
-    return { error: "All fields are required" };
-  }
-
-  try {
-    // Hash the password
-    const password_hash = await bcrypt.hash(password, 10);
-
-    // Insert the student data
-    const { data, error } = await supabase
-      .from("students")
-      .insert({
-        admin_id: user.id,
-        nama_lengkap,
-        username,
-        password_hash,
-        kelas,
-      })
-      .select();
-
-    if (error) {
-      if (error.code === "23505") {
-        return { error: "Username already exists" };
-      }
-      return { error: error.message };
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    return { error: "An unexpected error occurred" };
-  }
-}
-
-export async function checkUsernameAvailability(username: string) {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("students")
-    .select("username")
-    .eq("username", username)
-    .maybeSingle();
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  return { available: !data };
-}
 
 // Get user profile by auth
 export async function getUserProfile() {
@@ -273,4 +203,160 @@ export async function getUserProfile() {
     .single();
 
   return profile;
+}
+
+// Kelas actions
+export async function addKelas(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: "Anda harus login sebagai admin" };
+    }
+
+    const nama_kelas = formData.get("nama_kelas") as string;
+
+    if (!nama_kelas || nama_kelas.trim() === "") {
+      return { error: "Nama kelas harus diisi" };
+    }
+
+    const { error } = await supabase.from("kelas").insert({
+      kelas_id: uuidv4(),
+      id_admin: user.id,
+      nama_kelas,
+    });
+
+    if (error) throw error;
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || "Terjadi kesalahan saat menyimpan data" };
+  }
+}
+
+// Pelajaran actions
+export async function addPelajaran(formData: FormData) {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: "Anda harus login sebagai admin" };
+    }
+
+    const nama_pelajaran = formData.get("nama_pelajaran") as string;
+
+    if (!nama_pelajaran || nama_pelajaran.trim() === "") {
+      return { error: "Nama pelajaran harus diisi" };
+    }
+
+    const { error } = await supabase.from("pelajaran").insert({
+      id_admin: user.id,
+      nama_pelajaran,
+    });
+
+    if (error) throw error;
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || "Terjadi kesalahan saat menyimpan data" };
+  }
+}
+
+// Students actions
+export async function getKelasList() {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("kelas")
+      .select("kelas_id, nama_kelas");
+
+    if (error) throw error;
+
+    return { data };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+export async function addStudent(formData: FormData) {
+  const supabase = await createClient();
+
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be logged in to add a student" };
+  }
+
+  // Get form data
+  const nama_lengkap = formData.get("nama_lengkap") as string;
+  const username = formData.get("username") as string;
+  const password = formData.get("password") as string;
+  const kelas = formData.get("kelas") as string;
+  const kelas_id = formData.get("kelas_id") as string;
+
+  // Validate form data
+  if (!nama_lengkap || !username || !password || (!kelas && !kelas_id)) {
+    return { error: "All fields are required" };
+  }
+
+  try {
+    // Hash the password
+    const password_hash = await bcrypt.hash(password, 10);
+
+    // Insert the student data
+    const { data, error } = await supabase
+      .from("students")
+      .insert({
+        admin_id: user.id, // Menggunakan admin_id sesuai struktur tabel Anda
+        nama_lengkap,
+        username,
+        password_hash, // Menggunakan password_hash sesuai struktur tabel Anda
+        kelas: kelas || undefined,
+        kelas_id: kelas_id || undefined,
+      })
+      .select();
+
+    if (error) {
+      if (error.code === "23505") {
+        return { error: "Username already exists" };
+      }
+      return { error: error.message };
+    }
+
+    revalidatePath("/");
+    return { success: true, data };
+  } catch (error: any) {
+    return { error: error.message || "An unexpected error occurred" };
+  }
+}
+
+export async function checkUsernameAvailability(username: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("students")
+    .select("username")
+    .eq("username", username)
+    .maybeSingle();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { available: !data };
 }
