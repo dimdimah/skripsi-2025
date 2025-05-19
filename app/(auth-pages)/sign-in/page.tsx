@@ -1,4 +1,4 @@
-import { signInAction } from "@/app/actions";
+import { signInAction, signInWithGoogleAction } from "@/app/actions";
 import { FormMessage, Message } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import { SmtpMessage } from "../smtp-message";
+import { Separator } from "@radix-ui/react-dropdown-menu";
 
 export default async function Login(props: { searchParams: Promise<Message> }) {
   const searchParams = await props.searchParams;
@@ -76,6 +77,20 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
               Sign In
             </SubmitButton>
           </CardFooter>
+        </form>
+        <div className="flex items-center">
+          <Separator className="flex-1" />
+          <span className="mx-2 text-xs text-muted-foreground">OR</span>
+          <Separator className="flex-1" />
+        </div>
+        <form action={signInWithGoogleAction}>
+          <SubmitButton
+            formAction={signInWithGoogleAction}
+            pendingText="Signing up..."
+            className="w-full"
+          >
+            Sign Up
+          </SubmitButton>
         </form>
       </Card>
 

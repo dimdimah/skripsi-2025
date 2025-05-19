@@ -48,21 +48,13 @@ export default async function AuthButton() {
     );
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile) {
-    return (
-      <div className="flex gap-2">
-        <Button asChild size="sm">
-          <Link href="/sign-in">Join Exams</Link>
-        </Button>
-      </div>
-    );
-  }
+  const profile = {
+    full_name: user?.user_metadata?.full_name || "User",
+    avatar_url: user?.user_metadata?.avatar_url || null,
+    picture: user?.user_metadata?.picture || null,
+    email: user?.email || "",
+  };
+  const avatarUrl = profile.picture?.trim() || profile.avatar_url?.trim();
 
   return (
     <div className="flex items-center justify-between w-full">
@@ -73,7 +65,15 @@ export default async function AuthButton() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative rounded-full">
-              <UserIcon size={25} className="h-8 w-8" />
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Profile"
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                <UserIcon size={25} className="h-8 w-8" />
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

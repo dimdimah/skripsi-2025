@@ -110,6 +110,27 @@ export const signInAction = async (formData: FormData) => {
   return redirect("/protected");
 };
 
+// SIGN IN WITH GOOGLE ACTION
+export const signInWithGoogleAction = async () => {
+  const supabase = await createClient();
+  const origin =
+    (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    return encodedRedirect("error", "/sign-in", error.message);
+  }
+
+  return redirect(data.url);
+};
+
+// FORGOT PASSWORD ACTION
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const supabase = await createClient();
@@ -144,6 +165,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
   );
 };
 
+// RESET PASSWORD ACTION
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();
 
@@ -181,13 +203,14 @@ export const resetPasswordAction = async (formData: FormData) => {
   encodedRedirect("success", "/protected/reset-password", "Password updated");
 };
 
+// SIGN OUT ACTION
 export const signOutAction = async () => {
   const supabase = await createClient();
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };
 
-// Get user profile by auth
+// GET USER PROFILE BY AUTH
 export async function getUserProfile() {
   const supabase = await createClient();
   const {
