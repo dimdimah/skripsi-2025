@@ -65,15 +65,7 @@ export default async function AuthButton() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative rounded-full">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt="Profile"
-                  className="h-8 w-8 rounded-full object-cover"
-                />
-              ) : (
-                <UserIcon size={25} className="h-8 w-8" />
-              )}
+              <UserIcon size={25} className="h-8 w-8" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
